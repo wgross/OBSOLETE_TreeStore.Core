@@ -45,23 +45,26 @@ namespace TreeStore.Core.Provider
 
         public void ForEachPathNode<T>(Action<CTX, T> apply) where T : class
         {
+            this.context.Provider.WriteDebug($"{this.memberName}:Calling {typeof(T)} foreach node at {this.context.Path}");
             // interact with provider capability
             apply(this.context, default);
         }
 
         public object ForFirstPathNode<T>(Func<CTX, T, object> apply) where T : class
         {
+            this.context.Provider.WriteDebug($"{this.memberName}:Calling {typeof(T)} for first node at {this.context.Path}");
             // interact with provider capability
             return apply(this.context, default);
         }
 
-        public R ForFirstPathNode<T,R>(Func<CTX, T, R> apply) where T : class
+        public R ForFirstPathNode<T, R>(Func<CTX, T, R> apply) where T : class
         {
+            this.context.Provider.WriteDebug($"{this.memberName}:Calling {typeof(T)} for first node at {this.context.Path}");
             // interact with provider capability
             return apply(this.context, default);
         }
 
-        public void Dispose() => this.context.Provider.WriteDebug($"StepOut:{this.memberName}");
+        public void Dispose() => this.context.Provider.WriteDebug($"StepOut:{this.memberName} at {this.context.Path}");
 
         private IEnumerable<ProviderNodeBase> TraversePath()
         {
