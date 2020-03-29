@@ -8,19 +8,19 @@ namespace TreeStore.Core.Provider
 
         protected override void GetItem(string path)
         {
-            using var call = StepIn(CreateContext(path));
+            using var ctx = CreateContext(path);
 
-            call.ForEachPathNode<IGetItem>((ctx, gi) =>
+            ctx.ForEachPathNode<IGetItem>((ctx, gi) =>
             {
-                ctx.Provider.WriteItemObject(gi.GetItem(ctx), ctx.Path, gi.IsContainer);
+                ctx.WriteItemObject(gi.GetItem(ctx), path, gi.IsContainer);
             });
         }
 
         protected override object GetItemDynamicParameters(string path)
         {
-            using var call = StepIn(CreateContext(path));
+            using var ctx = CreateContext(path);
 
-            return call.ForFirstPathNode<IGetItem>((ctx, gi) => gi.GetItemParameters);
+            return ctx.ForFirstPathNode<IGetItem>((ctx, gi) => gi.GetItemParameters);
         }
 
         #endregion GetItem
@@ -29,16 +29,16 @@ namespace TreeStore.Core.Provider
 
         protected override void ClearItem(string path)
         {
-            using var call = StepIn(CreateContext(path));
+            using var ctx = CreateContext(path);
 
-            call.ForEachPathNode<IClearItem>((ctx, ci) => ci.ClearItem(ctx));
+            ctx.ForEachPathNode<IClearItem>((ctx, ci) => ci.ClearItem(ctx));
         }
 
         protected override object ClearItemDynamicParameters(string path)
         {
-            using var call = StepIn(CreateContext(path));
+            using var ctx = CreateContext(path);
 
-            return call.ForFirstPathNode<IClearItem>((ctx, ci) => ci.ClearItemDynamicParamters);
+            return ctx.ForFirstPathNode<IClearItem>((ctx, ci) => ci.ClearItemDynamicParamters);
         }
 
         #endregion ClearItem
@@ -47,16 +47,16 @@ namespace TreeStore.Core.Provider
 
         protected override void InvokeDefaultAction(string path)
         {
-            using var call = StepIn(CreateContext(path));
+            using var ctx = CreateContext(path);
 
-            call.ForEachPathNode<IInvokeItem>((ctx, ii) => ii.InvokeItem(ctx));
+            ctx.ForEachPathNode<IInvokeItem>((ctx, ii) => ii.InvokeItem(ctx));
         }
 
         protected override object InvokeDefaultActionDynamicParameters(string path)
         {
-            using var call = StepIn(CreateContext(path));
+            using var ctx = CreateContext(path);
 
-            return call.ForFirstPathNode<IInvokeItem>((ctx, ci) => ci.InvokeItemParameters);
+            return ctx.ForFirstPathNode<IInvokeItem>((ctx, ci) => ci.InvokeItemParameters);
         }
 
         #endregion InvokeDefaultAction
@@ -65,16 +65,16 @@ namespace TreeStore.Core.Provider
 
         protected override bool ItemExists(string path)
         {
-            using var call = StepIn(CreateContext(path));
+            using var ctx = CreateContext(path);
 
-            return call.ForFirstPathNode<IItemExists, bool>((ctx, ie) => ie.ItemExists(ctx));
+            return ctx.ForFirstPathNode<IItemExists, bool>((ctx, ie) => ie.ItemExists(ctx));
         }
 
         protected override object ItemExistsDynamicParameters(string path)
         {
-            using var call = StepIn(CreateContext(path));
+            using var ctx = CreateContext(path);
 
-            return call.ForFirstPathNode<IItemExists>((ctx, ie) => ie.ItemExistsParameters);
+            return ctx.ForFirstPathNode<IItemExists>((ctx, ie) => ie.ItemExistsParameters);
         }
 
         #endregion ItemExists
@@ -83,16 +83,16 @@ namespace TreeStore.Core.Provider
 
         protected override void SetItem(string path, object value)
         {
-            using var call = StepIn(CreateContext(path));
+            using var ctx = CreateContext(path);
 
-            call.ForEachPathNode<ISetItem>((ctx, si) => si.SetItem(ctx, value));
+            ctx.ForEachPathNode<ISetItem>((ctx, si) => si.SetItem(ctx, value));
         }
 
         protected override object SetItemDynamicParameters(string path, object value)
         {
-            using var call = StepIn(CreateContext(path));
+            using var ctx = CreateContext(path);
 
-            return call.ForFirstPathNode<ISetItem>((ctx, si) => si.SetItemParameters);
+            return ctx.ForFirstPathNode<ISetItem>((ctx, si) => si.SetItemParameters);
         }
 
         #endregion SetItem

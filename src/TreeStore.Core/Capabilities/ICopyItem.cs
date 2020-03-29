@@ -7,6 +7,6 @@ namespace TreeStore.Core.Capabilities
     {
         object CopyItemParameters => new RuntimeDefinedParameterDictionary();
 
-        void CopyItem<CTX>(CTX providerContext, string sourceItemName, string destinationItemName, ProviderNodeBase destinationNode);
+        void CopyItem<CTX>(CTX providerContext, string sourceItemName, string destinationItemName, ProviderNodeBase? destinationNode);
     }
 }

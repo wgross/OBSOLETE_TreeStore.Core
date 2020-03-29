@@ -1,24 +1,23 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Management.Automation.Provider;
 using System.Text.RegularExpressions;
 using TreeStore.Core.Nodes;
 
 namespace TreeStore.Core.Provider
 {
     // Define other methods, classes and namespaces here
-    public class ProviderMethodContext
+    public class ProviderMethodContext : IDisposable
     {
-        public ProviderNodeBase StartNode { get; internal set; }
+        public ProviderNodeBase? StartNode { get; }
 
-        public string Path { get; internal set; }
+        public ProviderBase Provider { get; }
 
-        public CmdletProvider Provider { get; internal set; }
+        private readonly string callerMemberName;
 
         public IEnumerable<string> PathSegments()
         {
-            var path = this.Path.ToLowerInvariant().Replace('\\', '/');
+            var path = this.Path.ToLowerInvariant();
             path = new Regex(@"^[-_a-z0-9:]+:/?").Replace(path, "");
 
             return path.Split(new char[]
@@ -26,60 +25,100 @@ namespace TreeStore.Core.Provider
                 System.IO.Path.DirectorySeparatorChar,
                 System.IO.Path.AltDirectorySeparatorChar,
             }, StringSplitOptions.RemoveEmptyEntries);
-
-            IEnumerable<ProviderNodeBase> factories = new[] { this.StartNode };
         }
-    }
 
-    public readonly struct ProviderMethodCall<CTX> : IDisposable
-        where CTX : ProviderMethodContext
-    {
-        private readonly string memberName;
-        private readonly CTX context;
+        private IReadOnlyCollection<ProviderNodeBase>? pathNodes = null;
 
-        internal ProviderMethodCall(CTX context, string memberName)
+        public ProviderMethodContext(ProviderBase providerBase, string path, string callerMemberName)
         {
-            this.memberName = memberName;
-            this.context = context;
+            this.callerMemberName = callerMemberName;
+            this.Provider = providerBase;
+            this.Path = path;
+            this.StartNode = null;
         }
 
-        public void ForEachPathNode<T>(Action<CTX, T> apply) where T : class
+        #region Provide Path segmenst and nodes
+
+        public string Path { get; }
+
+        //private IEnumerable<string> PathSegments => this.pathSegments ??= this.SplitPath();
+
+        //private readonly IEnumerable<string> pathSegments = null;
+
+        
+        #endregion Provide Path segmenst and nodes
+
+        #region IDisposable
+
+        private bool disposedValue = false; // To detect redundant calls
+
+        protected virtual void Dispose(bool disposing)
         {
-            this.context.Provider.WriteDebug($"{this.memberName}:Calling {typeof(T)} foreach node at {this.context.Path}");
-            // interact with provider capability
-            apply(this.context, default);
+            if (!disposedValue)
+            {
+                if (disposing)
+                {
+                    this.Provider.WriteDebug($"StepOut:{this.callerMemberName} at {this.Path}");
+                }
+
+                disposedValue = true;
+            }
         }
 
-        public object ForFirstPathNode<T>(Func<CTX, T, object> apply) where T : class
+        public void Dispose()
         {
-            this.context.Provider.WriteDebug($"{this.memberName}:Calling {typeof(T)} for first node at {this.context.Path}");
-            // interact with provider capability
-            return apply(this.context, default);
+            Dispose(true);
         }
 
-        public R ForFirstPathNode<T, R>(Func<CTX, T, R> apply) where T : class
-        {
-            this.context.Provider.WriteDebug($"{this.memberName}:Calling {typeof(T)} for first node at {this.context.Path}");
-            // interact with provider capability
-            return apply(this.context, default);
-        }
+        #endregion IDisposable
 
-        public void Dispose() => this.context.Provider.WriteDebug($"StepOut:{this.memberName} at {this.context.Path}");
+        #region Build provder node from path segments
+
+        public IEnumerable<ProviderNodeBase> PathNodes => this.pathNodes ??= this.TraversePath().ToArray();
 
         private IEnumerable<ProviderNodeBase> TraversePath()
         {
-            var nextNode = this.context.StartNode;
-            IEnumerable<ProviderNodeBase> resultNodes = new[] { nextNode };
+            var innerNode = this.StartNode;
+            IEnumerable<ProviderNodeBase> leafNodes = new[] { innerNode };
 
-            foreach (var segment in this.context.PathSegments())
+            foreach (var segment in this.PathSegments())
             {
-                resultNodes = nextNode.Resolve(this.context, segment);
-                if (resultNodes.Any())
-                    nextNode = resultNodes.First();
-                else return resultNodes;
+                leafNodes = innerNode.Resolve(this, segment);
+                if (leafNodes.Any())
+                    innerNode = leafNodes.First(); // only one npde can be travered as an onner node.
+                else return leafNodes;
             }
 
-            return resultNodes;
+            return leafNodes;
+        }
+
+        #endregion Build provder node from path segments
+
+        public void ForEachPathNode<T>(Action<ProviderBase, T> apply) where T : class
+        {
+            this.Provider.WriteDebug($"{this.callerMemberName}:Calling {typeof(T)} foreach node at {this.Path}");
+            // interact with provider capability
+            apply(this.Provider, default);
+        }
+
+        public object ForFirstPathNode<T>(Func<ProviderBase, T, object> apply) where T : class
+        {
+            this.Provider.WriteDebug($"{this.callerMemberName}:Calling {typeof(T)} for first node at {this.Path}");
+            // interact with provider capability
+            return apply(this.Provider, default);
+        }
+
+        public void ForFirstPathNode(Func<ProviderBase, ProviderNodeBase, object> apply)
+        {
+            // interact with provider capability
+            apply(this.Provider, default);
+        }
+
+        public R ForFirstPathNode<T, R>(Func<ProviderBase, T, R> apply) where T : class
+        {
+            this.Provider.WriteDebug($"{this.callerMemberName}:Calling {typeof(T)} for first node at {this.Path}");
+            // interact with provider capability
+            return apply(this.Provider, default);
         }
     }
 }

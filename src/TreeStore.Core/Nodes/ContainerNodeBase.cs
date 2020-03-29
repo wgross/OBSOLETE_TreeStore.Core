@@ -27,6 +27,6 @@ namespace TreeStore.Core.Nodes
 
         public abstract IEnumerable<ProviderNodeBase> GetChildItems<CTX>(CTX providerContext);
 
-        #endregion IGetChildItem
+                #endregion IGetChildItem
     }
 }
