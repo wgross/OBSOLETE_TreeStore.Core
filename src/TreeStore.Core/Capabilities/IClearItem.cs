@@ -1,10 +1,8 @@
-﻿using System.Management.Automation;
-
-namespace TreeStore.Core.Capabilities
+﻿namespace TreeStore.Core.Capabilities
 {
     public interface IClearItem : IProviderNodeCapability
     {
-        object ClearItemDynamicParamters => new RuntimeDefinedParameterDictionary();
+        object ClearItemDynamicParamters<CTX>(CTX providerContext);
 
         void ClearItem<CTX>(CTX providerContext);
     }

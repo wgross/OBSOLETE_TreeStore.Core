@@ -36,6 +36,8 @@ namespace TreeStore.Core.Nodes
 
         #region IGetItem
 
+        public abstract object GetItemParameters<CTX>(CTX ctx);
+
         public abstract PSObject GetItem<CTX>(CTX providerContext);
 
         #endregion IGetItem

@@ -10,17 +10,18 @@ namespace TreeStore.Core.Provider
         {
             using var ctx = CreateContext(path);
 
-            ctx.ForEachPathNode<IGetItem>((ctx, gi) =>
-            {
-                ctx.WriteItemObject(gi.GetItem(ctx), path, gi.IsContainer);
-            });
+            var node = ctx.GetPathNode<IGetItem>();
+            if (node is null)
+                ctx.Provider.WriteItemObject(null, ctx.Path, isContainer: false);
+            else
+                ctx.Provider.WriteItemObject(node.GetItem(ctx), ctx.Path, node.IsContainer);
         }
 
         protected override object GetItemDynamicParameters(string path)
         {
             using var ctx = CreateContext(path);
 
-            return ctx.ForFirstPathNode<IGetItem>((ctx, gi) => gi.GetItemParameters);
+            return ctx.GetPathNode<IGetItem>()?.GetItemParameters(ctx) ?? this.EmptyRuntimeDefinedParameters;
         }
 
         #endregion GetItem
@@ -31,14 +32,14 @@ namespace TreeStore.Core.Provider
         {
             using var ctx = CreateContext(path);
 
-            ctx.ForEachPathNode<IClearItem>((ctx, ci) => ci.ClearItem(ctx));
+            ctx.GetPathNode<IClearItem>()?.ClearItem(ctx);
         }
 
         protected override object ClearItemDynamicParameters(string path)
         {
             using var ctx = CreateContext(path);
 
-            return ctx.ForFirstPathNode<IClearItem>((ctx, ci) => ci.ClearItemDynamicParamters);
+            return ctx.GetPathNode<IClearItem>()?.ClearItemDynamicParamters(ctx) ?? this.EmptyRuntimeDefinedParameters;
         }
 
         #endregion ClearItem
@@ -49,14 +50,14 @@ namespace TreeStore.Core.Provider
         {
             using var ctx = CreateContext(path);
 
-            ctx.ForEachPathNode<IInvokeItem>((ctx, ii) => ii.InvokeItem(ctx));
+            ctx.GetPathNode<IInvokeItem>()?.InvokeItem(ctx);
         }
 
         protected override object InvokeDefaultActionDynamicParameters(string path)
         {
             using var ctx = CreateContext(path);
 
-            return ctx.ForFirstPathNode<IInvokeItem>((ctx, ci) => ci.InvokeItemParameters);
+            return ctx.GetPathNode<IInvokeItem>()?.InvokeItemParameters(ctx) ?? this.EmptyRuntimeDefinedParameters;
         }
 
         #endregion InvokeDefaultAction
@@ -67,14 +68,14 @@ namespace TreeStore.Core.Provider
         {
             using var ctx = CreateContext(path);
 
-            return ctx.ForFirstPathNode<IItemExists, bool>((ctx, ie) => ie.ItemExists(ctx));
+            return ctx.GetPathNode<IItemExists>()?.ItemExists(ctx) ?? false;
         }
 
         protected override object ItemExistsDynamicParameters(string path)
         {
             using var ctx = CreateContext(path);
 
-            return ctx.ForFirstPathNode<IItemExists>((ctx, ie) => ie.ItemExistsParameters);
+            return ctx.GetPathNode<IItemExists>()?.ItemExistsParameters(ctx) ?? this.EmptyRuntimeDefinedParameters;
         }
 
         #endregion ItemExists
@@ -85,14 +86,14 @@ namespace TreeStore.Core.Provider
         {
             using var ctx = CreateContext(path);
 
-            ctx.ForEachPathNode<ISetItem>((ctx, si) => si.SetItem(ctx, value));
+            ctx.GetPathNode<ISetItem>()?.SetItem(ctx, value);
         }
 
         protected override object SetItemDynamicParameters(string path, object value)
         {
             using var ctx = CreateContext(path);
 
-            return ctx.ForFirstPathNode<ISetItem>((ctx, si) => si.SetItemParameters);
+            return ctx.GetPathNode<ISetItem>()?.SetItemParameters(ctx) ?? this.EmptyRuntimeDefinedParameters;
         }
 
         #endregion SetItem

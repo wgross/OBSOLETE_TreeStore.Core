@@ -4,7 +4,7 @@ namespace TreeStore.Core.Capabilities
 {
     public interface IGetItem : IProviderNodeCapability
     {
-        object GetItemParameters => new RuntimeDefinedParameterDictionary();
+        object GetItemParameters<CTX>(CTX providerContext);
 
         PSObject GetItem<CTX>(CTX providerContext);
     }

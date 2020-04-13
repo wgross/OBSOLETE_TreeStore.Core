@@ -1,5 +1,4 @@
-﻿using System.Linq;
-using System.Management.Automation;
+﻿using System.Management.Automation;
 using TreeStore.Core.Capabilities;
 
 namespace TreeStore.Core.Provider
@@ -12,36 +11,46 @@ namespace TreeStore.Core.Provider
         {
             using var ctx = CreateContext(path);
 
-            return ctx.ForFirstPathNode<IGetChildItem, bool>((ctx, gi) =>
-            {
-                return gi.HasChildItems(ctx);
-            });
+            return ctx.GetPathNode<IGetChildItem>()?.HasChildItems(ctx) ?? false;
         }
 
         protected override object GetChildItemsDynamicParameters(string path, bool recurse)
         {
             using var ctx = CreateContext(path);
 
-            return ctx.ForFirstPathNode<IGetChildItem>((ctx, gi) => gi.GetChildItemParameters);
+            return ctx.GetPathNode<IGetChildItem>()?.GetChildItemParameters(ctx, recurse) ?? this.EmptyRuntimeDefinedParameters;
         }
 
         override protected void GetChildItems(string path, bool recurse)
         {
-            using var call = CreateContext(path);
+            using var ctx = CreateContext(path);
 
-            call.ForEachPathNode<IGetChildItem>((ctx, gi) => gi.GetChildItems(ctx));
+            var parentNode = ctx.GetPathNode<IGetChildItem>();
+            if (parentNode is null)
+                return;
+
+            foreach (var childNode in parentNode.GetChildItems(ctx, recurse))
+            {
+                var (implements, getItem) = childNode.TryGetCapability<IGetItem>();
+                if (implements)
+                    this.WriteItemObject(childNode.GetItem(ctx), this.MakePath(ctx.Path, childNode.Name), childNode.IsContainer);
+            }
         }
 
         override protected void GetChildItems(string path, bool recurse, uint depth)
         {
             using var ctx = CreateContext(path);
 
-            ctx.ForEachPathNode<IGetChildItem>((ctx, gi) =>
+            var parentNode = ctx.GetPathNode<IGetChildItem>();
+            if (parentNode is null)
+                return;
+
+            foreach (var childNode in parentNode.GetChildItems(ctx, recurse, depth))
             {
-                // recurse?
-                // path muss child name enthalten
-                gi.GetChildItems(ctx).ToList().ForEach(n => ctx.WriteItemObject(n, path, n.IsContainer));
-            });
+                var (implements, getItem) = childNode.TryGetCapability<IGetItem>();
+                if (implements)
+                    this.WriteItemObject(childNode.GetItem(ctx), this.MakePath(ctx.Path, childNode.Name), childNode.IsContainer);
+            }
         }
 
         #endregion GetChildItem
@@ -52,19 +61,23 @@ namespace TreeStore.Core.Provider
         {
             using var ctx = CreateContext(path);
 
-            return ctx.ForFirstPathNode<IGetChildItem>((ctx, gi) => gi.GetChildItemParameters);
+            return ctx.GetPathNode<IGetChildItem>()?.GetChildItemParameters(ctx, false) ?? this.EmptyRuntimeDefinedParameters;
         }
 
         protected override void GetChildNames(string path, ReturnContainers returnContainers)
         {
             using var ctx = CreateContext(path);
 
-            ctx.ForEachPathNode<IGetChildItem>((ctx, gi) =>
+            var parentNode = ctx.GetPathNode<IGetChildItem>();
+            if (parentNode is null)
+                return;
+
+            foreach (var childNode in parentNode.GetChildItems(ctx, false))
             {
-                // recurse?
-                // path muss child name enthalten
-                gi.GetChildItems(ctx).ToList().ForEach(n => ctx.WriteItemObject(n, path, n.IsContainer));
-            });
+                var (implements, getItem) = childNode.TryGetCapability<IGetItem>();
+                if (implements)
+                    this.WriteItemObject(childNode.GetItem(ctx), this.MakePath(ctx.Path, childNode.Name), childNode.IsContainer);
+            }
         }
 
         #endregion GetChildNames
@@ -73,32 +86,32 @@ namespace TreeStore.Core.Provider
 
         protected override object CopyItemDynamicParameters(string path, string copyPath, bool recurse)
         {
-            using var call = CreateContext(path);
+            using var ctx = CreateContext(path);
 
-            return call.ForFirstPathNode<ICopyItem>((ctx, gi) => gi.CopyItemParameters);
+            return ctx.GetPathNode<ICopyItem>()?.CopyItemParameters(ctx, copyPath, recurse) ?? this.EmptyRuntimeDefinedParameters;
         }
 
         protected override void CopyItem(string path, string copyPath, bool recurse)
         {
             using var ctx = CreateContext(path);
 
-            // evaluate copy destination first
-            ctx.ForFirstPathNode((ctx, ci) =>
-            {
-                return 1;
-                // ci.CopyItem(ctx, ctx.Path, (string)ctx.DestinationPath, null);
-            });
+            var nodeToCopy = ctx.GetPathNode<ICopyItem>();
+            if (nodeToCopy is null)
+                return;
 
-            ctx.ForEachPathNode<ICopyItem>((ctx, ci) =>
-            {
-                ci.CopyItem(ctx, path, copyPath, null);
-            });
+            var destination = ctx.GetPathNodeOrParent(copyPath);
+            if (destination.node is null && destination.parentNode is null)
+                return;
+
+            if (destination.node is null)
+                nodeToCopy.CopyItem(ctx, destination.node);
+            else
+                nodeToCopy.CopyItem(ctx, copyPath, destination.parentNode);
         }
 
         #endregion CopyItem
 
         protected override bool ConvertPath(string path, string filter, ref string updatedPath, ref string updatedFilter)
-
         {
             return base.ConvertPath(path, filter, ref updatedPath, ref updatedFilter);
         }

@@ -1,13 +1,14 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Management.Automation;
 using System.Text.RegularExpressions;
 using TreeStore.Core.Nodes;
 
 namespace TreeStore.Core.Provider
 {
     // Define other methods, classes and namespaces here
-    public class ProviderMethodContext : IDisposable
+    public class ProviderCallContext : IDisposable
     {
         public ProviderNodeBase? StartNode { get; }
 
@@ -29,7 +30,7 @@ namespace TreeStore.Core.Provider
 
         private IReadOnlyCollection<ProviderNodeBase>? pathNodes = null;
 
-        public ProviderMethodContext(ProviderBase providerBase, string path, string callerMemberName)
+        public ProviderCallContext(ProviderBase providerBase, string path, string callerMemberName)
         {
             this.callerMemberName = callerMemberName;
             this.Provider = providerBase;
@@ -37,16 +38,28 @@ namespace TreeStore.Core.Provider
             this.StartNode = null;
         }
 
-        #region Provide Path segmenst and nodes
+        #region Provide Path segments and nodes
 
         public string Path { get; }
 
         //private IEnumerable<string> PathSegments => this.pathSegments ??= this.SplitPath();
 
-        //private readonly IEnumerable<string> pathSegments = null;
+        //private IEnumerable<string> SplitPath()
+        //{
+        //    yield return string.Empty;
 
-        
-        #endregion Provide Path segmenst and nodes
+        //    //string? childName = null;
+        //    //var path = this.Path;
+        //    //do
+        //    //{
+        //    //    childName = this.Provider.SessionState.Path.ParseChildName(this.Path);
+        //    //}
+        //    //while (!string.IsNullOrEmpty(childName));
+        //}
+
+        //private IEnumerable<string>? pathSegments = null;
+
+        #endregion Provide Path segments and nodes
 
         #region IDisposable
 
@@ -94,10 +107,42 @@ namespace TreeStore.Core.Provider
 
         #endregion Build provder node from path segments
 
+        #region Retrueve the path node to call
+
+        protected ProviderNodeBase? GetPathNode()
+        {
+            this.Provider.WriteDebug($"{this.callerMemberName}: Resolving node at {this.Path}");
+            return default;
+        }
+
+        public T GetPathNode<T>() where T : class
+        {
+            var pathNode = this.GetPathNode();
+
+            if (pathNode is null)
+            {
+                throw new ItemNotFoundException(this.Path);
+            }
+            else if (pathNode is T t)
+            {
+                this.Provider.WriteDebug($"{this.callerMemberName}: Node at {this.Path} supports capability {nameof(T)}");
+                return t;
+            }
+            else
+            {
+                throw new PSNotSupportedException($"{this.callerMemberName}: Node at {this.Path} doesn't support capability {nameof(T)}");
+            }
+        }
+
+        public (ContainerNodeBase? parentNode, ContainerNodeBase? node) GetPathNodeOrParent(string copyPath)
+        {
+            return (null, null);
+        }
+
         public void ForEachPathNode<T>(Action<ProviderBase, T> apply) where T : class
         {
             this.Provider.WriteDebug($"{this.callerMemberName}:Calling {typeof(T)} foreach node at {this.Path}");
-            // interact with provider capability
+            // interact with provider capabilitym
             apply(this.Provider, default);
         }
 
@@ -120,5 +165,7 @@ namespace TreeStore.Core.Provider
             // interact with provider capability
             return apply(this.Provider, default);
         }
+
+        #endregion Retrueve the path node to call
     }
 }
